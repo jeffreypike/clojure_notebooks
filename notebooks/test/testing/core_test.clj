@@ -1,4 +1,5 @@
 (ns testing.core-test
+  #_{:clj-kondo/ignore [:refer-all]}
   (:require [clojure.test :refer :all]
             [testing.core :refer :all]))
 
