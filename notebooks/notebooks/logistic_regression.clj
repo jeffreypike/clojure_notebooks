@@ -5,7 +5,6 @@
 ;; ### Setup
 
 (ns logistic_regression
-  #_{:clj-kondo/ignore [:unresolved-var]}
   (:require [nextjournal.clerk :as clerk]
             [uncomplicate.neanderthal
              [native :refer [dv dge]]
@@ -31,7 +30,6 @@
 (defn logistic_regression
   "The output of a logistic regression model"
   [params X]
-  #_{:clj-kondo/ignore [:unresolved-var]}
   (sigmoid (xpy (mv X (get params :weights))
        (ax (get params :bias) (dv (repeat (mrows X) 1))))))
 

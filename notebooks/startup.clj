@@ -6,3 +6,5 @@
 
 ;; or let Clerk watch the given `:paths` for changes
 (clerk/serve! {:watch-paths ["notebooks" "src"]})
+
+(clerk/build! {:paths ["notebooks"]})
