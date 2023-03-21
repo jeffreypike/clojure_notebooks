@@ -57,7 +57,7 @@
                          (ax -1 y)))))})
 
 (defn train
-  "Train a linear regression model with gradient descent"
+  "Train a logistic regression model with gradient descent"
   ([params X y learning_rate epochs count]
    (if (= epochs count)
      params
