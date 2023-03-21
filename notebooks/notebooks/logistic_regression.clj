@@ -8,7 +8,7 @@
   (:require [nextjournal.clerk :as clerk]
             [uncomplicate.neanderthal
              [native :refer [dv dge]]
-             [core :refer [subvector mv xpy entry ax trans sum col mrows]]
+             [core :refer [subvector mv xpy entry ax trans sum col mrows dim]]
              [random :refer [rand-normal!]]
              [vect-math :refer [sigmoid]]]
             [tablecloth.api :as tc]))
@@ -31,7 +31,7 @@
   "The output of a logistic regression model"
   [params X]
   (sigmoid (xpy (mv X (get params :weights))
-       (ax (get params :bias) (dv (repeat (mrows X) 1))))))
+                (ax (get params :bias) (dv (repeat (mrows X) 1))))))
 
 (defn decision_boundary
   "The decision boundary line of a logistic regression model"
@@ -41,7 +41,7 @@
            x)
        (ax (/ (* -1 (get params :bias))
               (entry (get params :weights) 1))
-           (dv (repeat 100 1)))))
+           (dv (repeat (dim x) 1)))))
 
 (defn step
   "Perform one step of gradient descent"
@@ -81,7 +81,7 @@
                           :y (->vec (col xy 1)) 
                           :label (->vec labels)}))
 
-;; And to cap this section off, let's plot the data we created
+;; To cap this section off, let's plot the data we created.
 
 (clerk/plotly {:data [{:x (->vec (subvector (col xy 0) 0 50))
                        :y (->vec (subvector (col xy 1) 0 50))
