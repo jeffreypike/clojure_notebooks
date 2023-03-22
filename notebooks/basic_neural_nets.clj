@@ -85,5 +85,16 @@
 
 (clerk/table boundary)
 
-(clerk/plotly {:data [{:x (->vec (tc/column boundary :x))
-                       :y (->vec (tc/column boundary :y))}]})
+(clerk/plotly {:data [{:x (->vec (subvector (col xy 0) 0 100))
+                       :y (->vec (subvector (col xy 1) 0 100))
+                       :name "Class 1"
+                       :type "scatter"
+                       :mode "markers"}
+                      {:x (->vec (subvector (col xy 0) 100 100))
+                       :y (->vec (subvector (col xy 1) 100 100))
+                       :name "Class 2"
+                       :type "scatter"
+                       :mode "markers"}
+                      {:x (->vec (tc/column boundary :x))
+                       :y (->vec (tc/column boundary :y))
+                       :name "Decision Boundary"}]})
