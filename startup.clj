@@ -5,7 +5,7 @@
 (clerk/serve! {:browse? true})
 
 ;; let Clerk watch the given `:paths` for changes
-(clerk/serve! {:watch-paths ["notebooks" "src"]})
+(clerk/serve! {:watch-paths ["notebooks"]})
 
 ;; build a static html of a given notebook
 (clerk/build! {:paths ["notebooks/logistic_regression.clj"]})

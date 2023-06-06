@@ -1,8 +1,28 @@
 ;; # Linear Regression with Gradient Descent
-;; In this notebook we train a linear regression model from scratch on 
-;; synthetic data.  To make things slightly more interesting, we use 
-;; gradient descent rather than the closed form solution.
+;; Welcome to the first notebook in a mini-series on data science in Clojure!  These notebooks grew out of my efforts to familiarize
+;; myself with the data science tools that exist in the Clojure community.  My hope is that they can provide a helpful
+;; starting point for anyone that is new to Clojure, new to data science altogether, or both!
+
+;; ## Why Clojure?
+;; Clojure is a beautiful language coming from the lisp family, where the overarching philosophy is 'code is data', a philosophy that
+;; goes a long way in data science!  The main obstacle to the use of lisps for data science lies in the lack of a developed ecosystem.
+;; It is simply too much to ask to reinvent the wheel in the data science world, as there are a plethora of complex models and algorithms
+;; that could be valuable tools and let's be honest... we want to try them all!  Luckily, Clojure's relationship with Java provides a
+;; built-in solution to this problem by giving us access to the Java data science ecosystem practically for free.  In short, Clojure
+;; brings the best of both worlds by providing the data-first design philosophy of lisps along with the well-developed package base of
+;; Java, making it the perfect language for data science!
+
 ;; ## Setup
+;; There are a few packages that we'll make use of to make our regression dreams come true:
+;; * [Clerk](https://github.com/nextjournal/clerk): The tool used to generate this very notebook!  If you're used to working
+;; in Jupyter notebooks, then you're going to love Clerk because it provides that same experience without asking you to
+;; leave your favourite editor.  Seriously, give it a try... it's awesome!
+;; * [Neanderthal](https://neanderthal.uncomplicate.org/): The engine that makes it all possible.  Neanderthal is designed to
+;; give us highly optimized linear algebra in Clojure.  For those of us coming from Python, this is our NumPy equivalent 
+;; (but even faster!).  Since we're doing everything from scratch, this is the only package we truly _need_.
+;; * [SciCloj](https://github.com/scicloj/scicloj.ml): After implementing our regression model directly, we'll also show how we can solve
+;; the same problem using an efficient modeling package.  For the Python users, this is our SciKit Learn, though it also comes with
+;; a wrapper around [tech.ml.dataset](https://github.com/techascent/tech.ml.dataset), which is our Pandas equivalent.
 
 (ns linear_regression
   (:require [nextjournal.clerk :as clerk] 
@@ -16,17 +36,31 @@
             [scicloj.ml.dataset :as ds]))
 
 ;; ### Utility Functions
-;; First let's define a couple of quality of life functions
+;; We'll begin by defining a few quality of life functions.  The main datatype we're going to use throughout this notebook
+;; is Neanderthal's `RealBlockVector`, which is optimized for computations.  However, many of the other packages we want
+;; to make use of (tablecloth, plotly, etc) expect a regular old Clojure vector, so let's kick things off by defining a 
+;; helper function to transform a Neanderthal vector to something that's readable by packages that don't know Neanderthal exists.
 
 (defn ->vec 
   "For converting Neanderthal vectors into Clojure vectors"
   [x] 
   (into [] x))
 
+;; Next up, it looks like Neanderthal doesn't come with a built-in way to take the mean of a vector. It does however have a function
+;; that returns the sum of the entries (`sum`), as well as one that returns the dimension (`dim`), so defining our own mean function is straightforward
+;; and should help clean up our code a bit.
+
 (defn mean
   "Take the mean of a Neanderthal vector"
   [x]
   (* (/ 1 (dim x)) (sum x)))
+
+;; The last utility function we'll define simply returns a vector or matrix full of ones.  This will be helpful for
+;; [vector broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html), which Neanderthal doesn't handle
+;; for us.  We'll do this by changing all the entries of a newly initialized object (whcih is full of zeros by default)
+;; to one.  Note that in Neanderthal, an exlamation point at the end of a function name indicates that the function is
+;; overwriting one of its inputs (use with caution!).  For example, `entry` _gets_ the entries of a vector or matrix, while
+;; `entry!` _sets_ them.
 
 (defn ones
   "Create a vector or matrix of ones"
@@ -36,10 +70,29 @@
    (entry! (dge n m) 1)))
 
 ;; ### Regression Functions
-;; Now let's get in to the real meat of the notebook: the functions that
-;; define and train the regression models.  We'll introduce the model itself,
-;; the R-squared goodness of fit measure, and a bare-bones gradient decscent algorithm.
+;; Now let's get in to the real meat of the notebook: the functions that define and train the regression models.
+;; _Linear regression_ is really a fancy word for the "line of best fit" (okay, okay... _hyperplane_ of best fit),
+;; in other words it is simply the linear equation that comes closest to representing the trend found in our data.
+;; Mathematically the model itself is just a linear equation.  That is, for a single sample $\vec x$ from our data, by
+;; a linear regression applied to $\vec x$ we just mean the quantity 
 
+;; $$ \ell (\vec x) = \vec x \cdot \vec w + b $$.
+
+;; Here $\vec w$ is a vector of _weights_ (so called because they determine how much to weigh each quantity being
+;; measured in our data when computing $\ell$), and $b$ is a scalar called the _bias_ (or sometimes the _intercept_).
+;; In general, we are not interested in applying our model just to one sample of our data, but rather to a large
+;; number of samples all at once.  We can compute this efficiently by stacking our individual samples as the
+;; rows of a matrix $X$, and taking advantage of matrix multiplication.  If we have $n$ data points, each comprised
+;; of $p$ measurements, then this takes the form:
+
+;; $$ \ell (X) = \begin{pmatrix} x_{11} & \cdots & x_{1p} \\ \vdots & \ddots & \vdots \\ x_{n1} & \cdots & x_{np} \end{pmatrix} \begin{pmatrix} w_1 \\ \vdots \\ w_p \end{pmatrix} + \begin{pmatrix} b \\ \vdots \\ b \end{pmatrix} $$
+
+;; Together the weights $w_1,\dots, w_p$ and the bias $b$ form the _parameters_ of the model.  Of course, the equation
+;; above assumes that we _know_ the parameters.  In fact, the problem statement of linear regression is to "determine"
+;; the best parameters for $\ell$.  So far we have been thinking of $\ell$ as a function of $X$, but really we have 
+;; two distinct phases that change the way we think about $\ell$.  First, before we've determined the optimal parameters,
+;; then we think of the data $X$ as given and $\ell$ is a function of the parameters; $\ell = \ell(\vec w, b)$ (this is
+;; known as the _training_ or _fitting_ phase)
 (defn linear_regression
   "A typical linear equation"
   [params X]
