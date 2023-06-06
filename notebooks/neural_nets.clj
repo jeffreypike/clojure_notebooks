@@ -226,7 +226,7 @@
 ;; ### Training the Network
 
 ;; Now let's train our model to see how well it learns the donut!  We'll use a learning rate of 0.001 and train for
-;; 1000 iterations ("epochs").
+;; 1000 iterations ("epochs").  Once again, these values weren't chosen particularly rigorously...
 
 (def optimal (train params_init xy labels 0.001 1000))
 

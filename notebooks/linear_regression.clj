@@ -8,9 +8,12 @@
   (:require [nextjournal.clerk :as clerk] 
             [uncomplicate.neanderthal
              [native :refer [dv dge]]
-             [core :refer [axpby! mv xpy entry ax dot dim trans sum col mrows]]
-             [random :refer [rand-normal!]]]
-            [tablecloth.api :as tc]))
+             [core :refer [axpby! axpy mv xpy entry ax dot dim trans sum col mrows]]
+             [random :refer [rand-normal!]]
+             [real :refer [entry!]]]
+            [scicloj.ml.core :as ml]
+            [scicloj.ml.metamorph :as mm]
+            [scicloj.ml.dataset :as ds]))
 
 ;; ### Utility Functions
 ;; First let's define a couple of quality of life functions
@@ -25,6 +28,13 @@
   [x]
   (* (/ 1 (dim x)) (sum x)))
 
+(defn ones
+  "Create a vector or matrix of ones"
+  ([n]
+  (entry! (dv n) 1))
+  ([n m]
+   (entry! (dge n m) 1)))
+
 ;; ### Regression Functions
 ;; Now let's get in to the real meat of the notebook: the functions that
 ;; define and train the regression models.  We'll introduce the model itself,
@@ -33,29 +43,27 @@
 (defn linear_regression
   "A typical linear equation"
   [params X]
-  (xpy (mv X (get params :weights)) 
-       (ax (get params :bias) (dv (repeat (mrows X) 1)))))
+  (axpy (get params :bias) (ones (mrows X))
+        (mv X (get params :weights))))
 
 (defn r2
   "The R-squared of a linear regression"
   [Yhat Y]
-  (- 1 (/ (dot (xpy Yhat (ax -1 Y))
-               (xpy Yhat (ax -1 Y)))
-          (dot (xpy Y (ax -1 (ax (mean Y) (dv (repeat (dim Y) 1)))))
-               (xpy Y (ax -1 (ax (mean Y) (dv (repeat (dim Y) 1)))))))))
+  (- 1 (/ (dot (axpy -1 Y Yhat)
+               (axpy -1 Y Yhat))
+          (dot (axpy (* -1 (mean Y)) (ones (dim Y)) Y)
+               (axpy (* -1 (mean Y)) (ones (dim Y)) Y)))))
 
 (defn step
   "Perform one step of gradient descent"
   [params X y learning_rate]
-  {:weights (xpy (get params :weights) 
-                 (ax (* -1 learning_rate) 
-                     (mv (trans X) 
-                         (xpy (linear_regression params X) 
-                              (ax -1 y)))))
+  {:weights (axpy (* -1 learning_rate)
+                  (mv (trans X)
+                      (axpy -1 y (linear_regression params X)))
+                  (get params :weights))
    :bias (+ (get params :bias)
-              (* (* -1 learning_rate)
-                  (sum (xpy (linear_regression params X)
-                            (ax -1 y)))))})
+            (* (* -1 learning_rate)
+               (sum (axpy -1 y (linear_regression params X)))))})
 
 (defn train
   "Train a linear regression model with gradient descent"
@@ -77,11 +85,6 @@
 
 (def x (rand-normal! (dv 100)))
 (def y (axpby! 2 x 1 (rand-normal! (dv 100))))
-
-;; For this notebook, creating an R-like (or pandas-like) dataframe
-;; is completely unnecessary, but let's do it anyways!
-
-(clerk/table (tc/dataset {:x (->vec x) :y (->vec y)}))
 
 ;; And to cap this section off, let's plot the data we created.s
 
@@ -159,7 +162,7 @@
 
 ;; Just for fun, let's throw this in to a table!
 
-(clerk/table (tc/dataset {:x (->vec xx) :y (->vec yy) :z (->vec zz)}))
+(clerk/table (ds/dataset {:x (->vec xx) :y (->vec yy) :z (->vec zz)}))
 
 ;; And let's take a look at our data.
 
@@ -227,3 +230,21 @@
                        :y (->vec yy)
                        :z (->vec zzhat)
                        :type "mesh3d"}]})
+
+;; ## Using SciCloj
+
+;; We can also use SciCloj.  SciCloj prefers dataset structures as inputs.  Preview:
+
+(clerk/table (ds/dataset {:x (->vec x) :y (->vec y)}))
+
+(def pipe-fn
+  (ml/pipeline
+   (mm/set-inference-target :y)
+   {:metamorph/id :model}
+   (mm/model {:model-type :smile.regression/ordinary-least-square})))
+
+(def trained-model
+  (pipe-fn {:metamorph/data (ds/dataset {:x (->vec x) :y (->vec y)})
+            :metamorph/mode :fit}))
+
+(ml/explain (:model trained-model))
