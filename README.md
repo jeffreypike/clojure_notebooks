@@ -1,14 +1,20 @@
-# testing
+# Clojure Notebooks
 
-A Clojure library designed to ... well, that part is up to you.
+A set of notebooks that implement fundamental machine learning algorithms from scratch in [Clojure](https://clojure.org/).  The goal was simply to learn more about the language and have a bit of fun!  Check out the rendered notebooks [here](https://jeffreypike.github.io/clojure_notebooks/)
 
-## Usage
+## TODO
+- [ ] Update known inefficiencies, such as not using the outer product shortcut for adding bias terms
+- [ ] Add additional context and explanations to the notebooks
+- [ ] Add comparison with packages, (Scicloj for regression, Deep Java Library for NN)
 
-FIXME
+## Potential Future Notebooks
+- Reinforcement learning path (basics, Q-learning)
+- NLP path (RNNs, basic NLP, transformer from scratch)
+- Additive Modeling Path (regularization, model selection algorithms, GAMs, NAMs)
 
 ## License
 
-Copyright © 2023 FIXME
+Copyright © 2023 Jeffrey Pike
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
