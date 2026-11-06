@@ -6,6 +6,7 @@ A set of notebooks that implement fundamental machine learning algorithms from s
 - [ ] Update known inefficiencies, such as not using the outer product shortcut for adding bias terms
 - [ ] Add additional context and explanations to the notebooks
 - [ ] Add comparison with packages, (Scicloj for regression, Deep Java Library for NN)
+- [ ] Look at clojure bindings for torch
 
 ## Potential Future Notebooks
 - Reinforcement learning path (basics, Q-learning)
